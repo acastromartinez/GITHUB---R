@@ -1,0 +1,205 @@
+---
+title: "Regresión lineal simple"
+author: "Agustín Castro"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    toc_float: yes
+    toc_depth: 3
+    collapsed: yes
+    smooth_scroll: yes
+    theme: spacelab
+    highlight: kate
+    df_print: paged
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+---
+# Inicio
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(extrafont)
+#font_import()
+loadfonts(device = "win")
+windowsFonts()
+```
+
+Píldoras_R. Material de formación
+
+En esta práctica trabajemos con la **regresión lineal simple**
+
+[mi_blog] https://agustincastro.es
+
+La **regresión lineal simple** es un método estadístico que se utiliza para **modelar la relación entre una variable dependiente (o respuesta) y una variable independiente**. La idea principal detrás de la regresión lineal simple es comprender **cómo cambia la variable dependiente cuando lo hace la variable independiente**. El objetivo es encontrar la mejor línea recta que se ajuste a los datos observados.
+
+Vamos a utilizar las siguientes librerías en esta práctica.
+
+```{r, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(ggplot2)
+library(hrbrthemes) # para el theme_ipsum()
+library(lmtest) # para el test de Breusch-Pagan
+library(psych) # para pairs.panels
+```
+# mtcars
+Trabajaremos el dataset **mtcars** que contiene datos de diferentes modelos de coches. 
+El conjunto de datos mtcars en R consta de **32 observaciones** y **11 variables**.
+
+```{r}
+data(mtcars)
+```
+
+Nos centraremos ahora en las variables **mpg** (millas por galón = consumo) y **wt** (peso).
+
+```{r}
+head(mtcars, 5)
+str(mtcars)
+```
+
+Dibujamos con **plot** la relación entre las variables **mpg** y **wt**. 
+Esta función viene de base con R y es sencilla de usar para echar un vistazo rápido.
+Se observa que hay una relación negativa, o inversa, entre las dos variables. 
+**A medida que aumenta el peso, disminuye la cantidad de millas que podemos recorrer por galón** 
+**de combustible**.
+
+```{r}
+plot(mtcars$wt, mtcars$mpg, main = "PESO vs CONSUMO", 
+     sub = "mtcars | 1974 Motor Trend US magazine", 
+     xlab = "Peso (Tn)", ylab = "Consumo (Millas por galón)", 
+     col = "#EC7063", pch = 19, type = "p", cex = 1.5)    
+```
+
+# Correlación lineal Pearson
+Podemos estudiar como es la correlación **lineal** entre ambas variables utilizando **cor**.
+El coeficiente de correlación de Pearson (r) es de **-0.868**, y el coeficiente de determinación (R)
+es **0.7528**. Podríamos decir que el 75% de la variabilidad de una variable 
+es explicada por la otra. 
+
+```{r}
+r <- cor(mtcars$wt, mtcars$mpg)
+R <- r^2 # coeficiente de determinación
+print (r)
+print (R)
+```
+
+Podemos obtener información detallada del test aplicado para estudiar la correlación con la función
+**cor.test**. 
+
+```{r}
+cor.test(mtcars$wt, mtcars$mpg)
+```
+
+#### Gráfico de correlación
+
+También podemos representar gráficamente la correlación con **pairs.panels**, una función
+de la librería **pysch**. Hay otras muchas funciones para representar gráficamente la correlación,
+como por ejemplo **corrplot**, aunque lo veremos en otras prácticas. 
+```{r}
+corr_grafico <- data.frame(mtcars$wt, mtcars$mpg)
+pairs.panels(corr_grafico, pch = 20, stars = TRUE, gap = 0, 
+             lm = TRUE, col = "blue", 
+             hist.col = "#EC7063", 
+             main = "PESO vs CONSUMO") 
+```
+
+# Regresión lineal
+Para crear el modelo de regresión lineal utilizamos la función **lm**, que creará el objeto
+**lm_mtcars**. En este objeto es donde se guardarán todos los resultados. 
+La variable dependiente, o respuesta, será **mpg** y la independiente, o predictora, **wt**. 
+Lo que nos interesa es conocer *como el peso del vehículo va a influir en el consumo de combustible*. De hecho, se intuye una relación inversa. 
+
+El objeto creado contiene información de dos valores, el **intercepto** y la **pendiente** de la recta
+(y = a + bX, donde y = es la variable respuesta (mpg), a = intercepto y b = pendiente (wt)).
+El modelo sería el siguiente **mpg = 37.2851 - 5.3445 * wt**.
+
+```{r}
+lm_mtcars <- lm(mpg ~ wt, data = mtcars)
+lm_mtcars
+```
+
+Si queremos más informción sobre el modelo creado, podemos acceder a un resumen utilizando la función  **summary**.
+```{r}
+summary(lm_mtcars)
+```
+
+[importante] Para poder dar por bueno el modelo de regresión lineal es necesario que se cumplan una serie
+de supuestos. El primero de ellos es que la relación entre las variables sea **lineal**. Por otro
+lado, es necesario que los **residuos sean normales**, es decir, que sigan una **distribución normal**. 
+Por último, es necesario que la **varianza de los residuos** sea homogenea, es decir, que exista
+**homocedasticidad**. 
+
+### Shapiro-Wilk
+Para medir la normalidad de los residuos podemos utilizar el test de **Shapiro-Wilk**.
+Como el p-valor (0.1044) es mayor que el nivel de significancia (0.05), concluimos que no hay evidencia para rechazar la hipótesis nula de normalidad. Por lo tanto, **los residuos se distribuyen normalmente**.
+
+```{r}
+shapiro.test(residuals(lm_mtcars))
+# shapiro.test(lm_mtcarars$residuals)) 
+# otra forma correcta de calcularlo
+```
+
+### Breusch-Pagan
+La homocedasticidad se puede comprobar visualmente con un gráfico de dispersión o, con el test
+de **Breusch-Pagan**. Para realizar este test **es necesario haber instalado** previamente la librería **lmtest**. El valor p (0.8406) es mayor que 0.05, lo que sugiere que no hay suficiente evidencia para rechazar la hipótesis nula de homocedasticidad. Esto implica que **la varianza de los residuos es constante en todas las variables independientes**.
+
+```{r}
+bptest(lm_mtcars)
+```
+
+### Gráficas de residuos
+Para comprobar la **normalidad** y la **homocedasticidad** podemos utilizar también estas gráficas de residuos. En las dos gráficas de la izquierda se observa que estos se distribuyen de forma aleatoria, sin seguir ningún patrón. La aparición de dispersiones importantes al inicio o final del gráfico son indicadores de lo contrario. Por otro lado, en el gráfico situado en la zona superior derecha (Q-Q Plot) se observa visualmente que los residuos se distribuyen de forma normal.
+
+```{r}
+par(mfrow = c(2,2)) # ventana en 2 filas y 2 columnas
+plot(lm_mtcars)
+```
+
+### Histograma de residuos
+Podemos observar también el histograma de los residuos para comprobar visualmente 
+si se distribuyen de forma **normal**. 
+```{r}
+hist(residuals(lm_mtcars))
+```
+
+
+### Gráfica de la regresión (plot)
+Una vez que damos por bueno el modelo podemos, por ejemplo, representar la **recta de regresión** en el gráfico anterior. Para ello utilizamos la función **abline**, que superpondrá la línea el gráfico generado por **plot**. Ambas funciones están de forma nativa en R. 
+
+```{r}
+par(mfrow = c(1,1))
+plot(mtcars$wt, mtcars$mpg, main = "PESO vs CONSUMO", 
+     sub = "mtcars | 1974 Motor Trend US magazine", 
+     xlab = "Peso (Tn)", ylab = "Consumo (Millas por galón)", 
+     col = "#EC7063", pch = 19, type = "p", cex = 1.5)
+abline(lm_mtcars, col = "#2E86C1", lwd = 2.5)
+```
+
+### Gráfica de la regresión (ggplot)
+Podemos utilizar la librería **ggplot2** para representar la recta de regresión. 
+En este caso utilizamos la función **geom_smooth**, seleccionando el metodo **lm** para que, con el método de mínimos cuadrados ordinarios (MCO), ajuste una línea de regresión lineal a los datos.
+
+```{r, message = FALSE, warnings = FALSE}
+ggplot(mtcars, aes(x = wt, y = mpg)) + 
+  geom_point() + 
+  geom_smooth(method = "lm") +
+  labs(title = "PESO vs CONSUMO", 
+       subtitle = "mtcars | 1974 Motor Trend US magazine", 
+       x = "Peso (Tn)", y = "Consumo (Millas por galón)") +
+  theme_ipsum()
+```
+
+### Estimación
+por último, podemos hacer el cáñculo de una predicción de millas por galón para un peso de vehículo de  3.5 toneladas. El resultado sería de **18.58 millas por galón**.
+```{r}
+wt = 3.5
+mpg = 37.2851 - 5.3445 * wt
+print(mpg)
+```
+
+eof, 13/10/2023
+
+
+

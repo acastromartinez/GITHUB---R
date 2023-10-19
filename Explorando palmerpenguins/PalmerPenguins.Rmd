@@ -1,0 +1,243 @@
+---
+title: "Penguins"
+author: "Castro, A."
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+    collapsed: yes
+    smooth_scroll: yes
+    theme: journal
+    highlight: kate
+    df_print: paged
+    code_folding: show
+    always_allow_html: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(extrafont)
+#font_import()
+loadfonts(device = "win")
+windowsFonts()
+```
+
+# Inicio
+Píldoras_R. Material de formación
+
+En esta práctica analizamos el dataset de PalmerPenguins
+
+[mi_blog] https://agustincastro.es
+
+Cargamos la librería de **palmerpenguins** y vemos que contiene un dataset que se llama **penguins**. Este es el que vamos a utilizar en esta práctica. 
+
+```{r}
+# usar para ver los datasets que contiene la librería
+data(package = "palmerpenguins")
+```
+
+
+```{r, message = FALSE, warning = FALSE}
+library(tidyverse) # librería para manipulación de datos
+library(DT) # tablas paginadas  
+library(palmerpenguins)
+library(ggplot2)
+library(hrbrthemes)
+
+data("penguins")
+```
+
+# Exploración general del dataset
+Este es el dataset de **penguins**. Aquí puedes ver qué información contiene. He utilizado la librería **DT** y la función **datatable** para que la tabla sea paginada. Esto quiere decir que si hay muchas observaciones, no se mostrarán todas a la vez, sino que se mostrarán por páginas. En este caso, se muestran 10 observaciones por página. 
+```{r}
+datatable(penguins, options = list(pageLength = 10))
+```
+
+Para empezar nos puede interesar saber qué variables contiene el dataset. Con **colnames** podemos ver el nombre de estas. Con **length** podemos contar cuántas son. 
+
+```{r}
+length(colnames(penguins))
+colnames(penguins)
+```
+
+Si queremos información sobre las variables y las observaciones podemos utilizar **str**. Interpretamos en resultado. Como vemos, hay 344 observaciones y los datos están en formato de "tibble". Hay tres variables cualitativas: La variable **[species]** es un factor que cuenta con 3 niveles (hay datos para tres especies de pinguinos). Exactamente ocurre lo mismo para **[island]** (hay tres islas). Por último está **[sex]**, que indica el sexo de los pinguinos y es un factor con dos niveles (hembra o macho). El resto de variables son cuantitativas, siendo enteras (sin decimales = int) **[flipper_length_mm]**, **[body_mass_g]** y **[year]** y, numéricas con decimales **[bill_length_mm]** y **[bill_depth_mm]**.
+
+```{r}
+str(penguins)
+```
+
+Como muchas funciones trabajan sobre data frames, creamos uno **df**.
+```{r} 
+df <- data.frame(penguins)
+```
+
+Podemos acceder rápidamente a un resumen de estadísticos descriptivos utilizando **sumary**.
+```{r}
+summary(df)
+```
+
+# Hacemos algunos cambios
+
+Vamos a realizar una traducción y cambios en los nombres de las variables del dataset utilizando la función **rename**. Además, creamos una nueva variable **ratio** con la función **mutate**, que va a ser la relación entre la masa corporal y la longitud de la aleta. Con **head(penguins, 5)** podemos ver las 5 primeras observaciones del nuevo dataset, ahora llamado **df_col_rename**. 
+
+```{r, message = FALSE, warning = FALSE}
+
+df_col_rename <- df %>% 
+  rename(especies = species,
+         isla = island,
+         pico_longitud_mm = bill_length_mm,
+         pico_grosor_mm = bill_depth_mm,
+         aleta_longitud_mm = flipper_length_mm,
+         masa_g = body_mass_g,
+         sexo = sex,
+         año = year) %>% 
+  mutate(ratio = masa_g / aleta_longitud_mm)
+penguins <- df_col_rename
+head(penguins, 5)
+```
+
+
+# Preguntas sobre los pinguinos
+### Tamaño
+¿Qué especie de pinguino tiene un mayor tamaño?
+
+Para empezar queremos saber **qué especie de pinguino tiene un mayor tamaño**. Para responder a esto nos fijaremos en sus **masas corporales**, **longitud de aletas** y **ratio** (que no deja de ser la relación entre las dos últimas). Utilizamos **group_by** para agrupar las observaciones por especie. Posteriormente, con **summarise** y **mean** calculamos la media de las tres variables. Ahora tenemos un nuevo data frame **penguins_size** con estos valores. El resultado lo ordenamos de manera descendiente con **arrange**. Como vemos, la especie que tiene un mayor tamaño es la **Gentoo**. De la misma forma podríamos calcular los valores máximos de estas variables **max**, los mínimos **min**, la desviación típica **sd** o la mediana **median**, por ejemplo.
+
+```{r message = FALSE, warning = FALSE}
+penguins_means <- penguins %>% 
+  group_by(especies) %>% 
+  drop_na() %>%
+  summarise(media_masa_g = mean(masa_g),
+            media_aleta_longitud_mm = mean(aleta_longitud_mm),
+            media_ratio = mean(ratio)) %>% 
+  arrange(desc(media_masa_g))
+penguins_means
+```
+
+### ¿Dónde viven los más grandes?
+Sabemos que hay datos biométricos para tres islas en el dataset. Nos preguntamos ¿Qué isla tiene los pinguinos más grandes? Para responder a esto, agrupamos por isla y calculamos ahora la media de **masa_g**. El resultado lo ordenamos de manera descendiente con **arrange**. Como vemos, la isla que tiene los pinguinos más grandes es **Biscoe**. 
+
+```{r, message = FALSE, warning = FALSE}
+penguins_island <- penguins %>% 
+  group_by(isla) %>%
+  drop_na() %>%
+  summarise(media_masa_g = mean(masa_g)) %>%
+  arrange(desc(media_masa_g))
+penguins_island
+```
+
+### Especies en Biscoe
+Pero, ¿Qué especies viven en la **isla Biscoe**? ¿Las tres, o solo alguna de ellas?
+Con **filter** podemos filtrar el dataset para ver solo los datos de los pinguinos de la isla **Biscoe**. Con **unique** vemos que solo Adelie y Gentoo están. De hecho, si contamos con **sum** el número de observaciones de cada especie vemos que hay 44 de Adelie y 124 de Gentoo, y ninguna de Chinstrap. Con **select** nos quedamos con esas columnas para pasarlas al nuevo data frame.
+
+```{r}
+# data frame con los pinguinos de la isla Biscoe
+penguins_biscoe <- penguins %>%
+  filter(isla == "Biscoe") %>%
+  drop_na() %>%
+  select(especies, isla, pico_longitud_mm, pico_grosor_mm, aleta_longitud_mm, masa_g, sexo, año, ratio) %>% 
+  arrange(desc(especies))
+
+# especies que hay en la isla Biscoe
+unique(penguins_biscoe$especies) 
+
+# número de observaciones de cada especie
+sum(penguins_biscoe$especies == "Adelie") 
+sum(penguins_biscoe$especies == "Gentoo") 
+sum(penguins_biscoe$especies == "Chinstrap") 
+```
+
+### Observaciones de sp en cada isla
+Vamos a representar el número de observaciones de cada especie, en cada una de las islas.
+
+```{r, message = FALSE, warning = FALSE}
+penguins_island_especies <- penguins %>%
+  group_by(isla) %>% 
+  drop_na() %>% 
+  summarise(Adelie = sum(especies == "Adelie"),
+            Chinstrap = sum(especies == "Chinstrap"),
+            Gentoo = sum(especies == "Gentoo"))
+
+penguins_island_especies %>% 
+  ggplot(aes(x = isla, y = Adelie, color = isla)) +
+  geom_col(aes(fill = isla), position = "dodge") +
+  labs(title = "Adelie",
+       x = "Isla",
+       y = "Número de observaciones") +
+  geom_text(aes(label = Adelie), position = position_dodge(width = 0.9), 
+            color = "black", size = 3.5, vjust = -0.4) + 
+  theme_ipsum()
+  
+penguins_island_especies %>% 
+  ggplot(aes(x = isla, y = Gentoo, color = isla)) +
+  geom_col(aes(fill = isla), position = "dodge") +
+  labs(title = "Gentoo",
+       x = "Isla",
+       y = "Número de observaciones") +
+  geom_text(aes(label = Gentoo), position = position_dodge(width = 0.9), 
+            color = "black", size = 3.5, vjust = -0.4) + 
+  theme_ipsum()
+
+penguins_island_especies %>% 
+  ggplot(aes(x = isla, y = Chinstrap, color = isla)) +
+  geom_col(aes(fill = isla), position = "dodge") +
+  labs(title = "Chinstrap",
+       x = "Isla",
+       y = "Número de observaciones") +
+  geom_text(aes(label = Chinstrap), position = position_dodge(width = 0.9), 
+            color = "black", size = 3.5, vjust = -0.4) +
+  theme_ipsum()
+```
+
+### Dimofismo sexual
+**¿Hay dimorfismo sexual en relación al tamaño de machos y hembras en las especies estudiadas (masa corporal y longitud de las aletas)?** Para contestar a esta pregunta necesitamos crear un nuevo dataframe con los valores medios de las variables para cada una de las especies. Para ello, agrupamos por especie y sexo y calculamos la media de las variables. El resultado lo ordenamos de manera descendiente con **arrange**. Como vemos, **en las tres especies los machos son más grandes que las hembras, en ambas variables**. 
+
+```{r, message = FALSE, warning = FALSE}
+penguins_dimorfismo_sexual_masa <- penguins %>% 
+  group_by(especies, sexo) %>%
+  drop_na() %>%
+  summarise(media_masa_g = mean(masa_g)) %>% 
+  arrange(especies, desc(sexo))
+penguins_dimorfismo_sexual_masa
+
+penguins_dimorfismo_sexual_aleta <- penguins %>% 
+  group_by(especies, sexo) %>%
+  drop_na() %>%
+  summarise(media_aleta_longitud_mm = mean(aleta_longitud_mm)) %>% 
+  arrange(especies, desc(sexo))
+  penguins_dimorfismo_sexual_aleta
+```
+
+Utilizando el data frame de penguins_dimorfismo_sexual_masa, vamos a representar gráficamente la masa de machos y hembras en las tres especies de pinguinos. Para ello, utilizamos la función **ggplot**. Con **aes** indicamos que en el eje x queremos la especie y en el eje y la masa corporal. Con **geom_col** indicamos que queremos representar los datos en forma de columnas. Con **fill** indicamos que queremos que las columnas se rellenen con el color de la variable sexo. Con **labs** añadimos el título y las etiquetas de los ejes. Con **theme** cambiamos el color de fondo del gráfico. 
+
+```{r, message = FALSE, warning = FALSE}
+ggplot(penguins_dimorfismo_sexual_masa, aes(x = reorder(especies, -media_masa_g), 
+                                            y = media_masa_g)) +
+  geom_col(aes(fill = sexo), position = "dodge") +
+  labs(title = "Dimorfismo sexual en masa corporal (g)",
+       x = "Especies",
+       y = "Masa corporal (g)") + 
+  geom_text(aes(label = round(media_masa_g, 1), group = sexo), 
+            position = position_dodge(width = 0.9), vjust = -0.5) +
+  theme_ipsum()
+```
+
+De la misma forma podemos hacerlo para la longitud de las aletas. 
+```{r, message = FALSE, warning = FALSE}
+ggplot(penguins_dimorfismo_sexual_aleta, aes(x = reorder(especies, 
+                                                         -media_aleta_longitud_mm), 
+                                             y = media_aleta_longitud_mm)) +
+  geom_col(aes(fill = sexo), position = "dodge") +
+  labs(title = "Dimorfismo sexual en longitud de las aletas (mm)",
+       x = "Especies",
+       y = "Longitud de las aletas (mm)") + 
+  geom_text(aes(label = round(media_aleta_longitud_mm, 1), group = sexo), 
+            position = position_dodge(width = 0.9), vjust = -0.5) +
+  theme_ipsum()
+```
