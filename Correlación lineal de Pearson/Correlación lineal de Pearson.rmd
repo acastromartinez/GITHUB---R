@@ -22,6 +22,7 @@ library(corrplot)
 library(palmerpenguins)
 ```
 
+<br>
 ¿Qué son las correlaciones entre variables? ¿Cómo entenderlas y trabajar con ellas? ¿Qué información nos ofrecen? ¿Cómo calcular éstas en R? **En esta entrada trato el tema de la correlación, concretamente la lineal, de Pearson**. Vamos a ver unos cuantos ejemplos utilizando funciones específicas de distintas librerías. En entradas posteriores veremos otros ejemplos de cálculo de correlaciones no paramétricas, como la de Spearman, o Kendall (consideradas ambas coeficientes de correlación de rango).
 
 
@@ -31,6 +32,7 @@ Para examinar si existe relación entre dos variables aleatorias estudiamos la e
 
 Existen coeficientes de correlación **paramétricos** y **no paramétricos**. El que usemos unos u otros va a depender de que se cumplan, o no, una serie de supuestos en nuestros datos, siendo los paramétricos los más restrictivos en lo que al cumplimiento de estos requisitos se refiere. En este sentido, es importante entender que **no podemos utilizar cualquier test, o coeficiente, en cualquier situación**. Hay que entender bien cuando estos ofrecerían resultados válidos o, por el contrario, conclusiones erróneas. *Es más habitual de lo que parece ver conclusiones basadas en resultados de unos análisis dudosos en cuanto a su planteamiento inicial, y desarrollo*.
 
+<br>
 **EL COEFICIENTE DE CORRELACIÓN LINEAL DE PEARSON**
 
 El **coeficiente de correlación de PEARSON (r)** es el más utilizado dentro de los coeficientes paramétricos. Por otro lado, dentro de los no paramétricos tenemos los de correlación por rangos de **SPEARMAN** y **KENDALL** (también conocido como Tau de Kendall).
@@ -41,6 +43,7 @@ El coeficiente de Pearson **mide el grado de aproximación de los puntos a lo qu
 
 El coeficiente de correlación de Pearson puede tomar un rango de valores de **-1 a +1**. Estos valores extremos implicarían la existencia de una **correlación perfecta** (ajuste perfecto a la recta), algo que, por otro lado, es bastante raro en ciencias más allá de la física.
 
+<br>
 **Aquí un ejemplo sencillo, basado en datos reales**.
 
 Estudiamos si existe relación entre las cantidades de arsénico y nitratos medidos en muestras de lluvia ácida (datos publicados en «The atmospheric Deposition of Arsenic and Association with Acid Precipitation» Atmospheric Environ. (1988): 937-943
@@ -90,6 +93,7 @@ shapiro.test(arsenico)
 
 A partir de r podemos también calcular lo que llamamos, **COEFICIENTE DE DETERMINACIÓN R^2 (r al cuadrado)**. Este nos servirá para conocer **el % de variación de una variable que es explicado por la otra**. En este caso es tan sencillo como elevar r al cuadrado. En este ejemplo obtenemos que el 53,6% de la variación de la cantidad que podemos encontrar de arsénico en la lluvia ácida está relacionada con la presencia también de arsénico. **ATENCIÓN**, esto no quiere decir *para nada* que la causa de la presencia de arsénico en la muestra se deba a que esté presente el nitrato. **Tened siempre en cuenta que la existencia de correlación no implica causalidad**. La causalidad habría que estudiarla aparte, en detalle y con el diseño experimental necesario para poder alcanzar conclusiones de ese estilo.
 
+<br>
 **Cálculo del coeficiente de determinación**
 
 ```{r}
@@ -102,6 +106,7 @@ Trabajando con la librería de **Palmer Penguins**. La librería «palmerpenguin
 
 Miramos los data que hay en la librería y cargamos el dataset que se llama penguins. Como vamos a hacer ahora una matriz de correlación, sobran todas las columnas que tienen variables no numéricas (eliminamos las columnas 1, 2 y 7, que se refieren a los nombres de las especies «species», nombres de las islas en las que se encuentran «island» y, el sexo de los animales «sex». Así, creamos un nuevo dataset (se llama en R, data frame) al que le ponemos el nombre de df_noNA y que está formado por los casos completos (que no tengan NA). Por último, creamos la matriz de correlación con la función cor.
 
+<br>
 **¿Que son estos NA?** En el contexto de la gestión de datos, «NA» significa «Not Available» o, «Not Applicable«, y se utiliza para **representar valores faltantes o ausentes en un conjunto de datos**. En una buena parte de análisis se hace necesario «eliminar» previamente estos. 
 
 ```{r}
