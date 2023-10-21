@@ -3,6 +3,9 @@ title: "Tests de Normalidad"
 author: "Agustín Castro"
 date: "`r Sys.Date()`"
 output:
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
   html_document:
     toc: yes
     toc_float: yes
@@ -12,9 +15,6 @@ output:
     theme: spacelab
     highlight: kate
     df_print: paged
-  pdf_document:
-    toc: yes
-    toc_depth: '3'
 ---
 
 # Inicio
@@ -29,6 +29,14 @@ En esta práctica trabajemos con varias pruebas y gráficas para determinar si e
 
 knitr::opts_chunk$set(echo = TRUE)
 
+library(tidyverse)
+library(tseries) # para test de Jarque-Bera
+library(nortest) # para test de Lilliefors
+library(car) # para los gráficos qqPlot con IC.
+```
+# Librerías
+Estas son las librerías que vamos a utilizar en esta práctica. Recuerda que sino las tienes, tendrás que instalarlas primero con **install.packages()** y, después, cargarlas en memoria con **library()**
+```{r}
 library(tidyverse)
 library(tseries) # para test de Jarque-Bera
 library(nortest) # para test de Lilliefors
@@ -190,7 +198,7 @@ qqline(iris$Sepal.Length,
        lwd = 1)
 ```
 
-También podemos realizar este otro gráfico con la función **qqPlot** de la librería **cars**.
+También podemos realizar este otro gráfico con la función **qqPlot** de la librería **car**.
 Con esta función podemos mostrar el intervalo de confianza del 95%, lo que indicaría que el gráfico Q-Q muestra un envelope alrededor de la línea diagonal que cubre el 95% de los puntos si los datos se ajustan a la distribución teórica especificada (normal en este caso, indicado en distribution = "norm"). 
 
 Con la función qqPlot de cars es posible indicar con qué distribución comparamos el ajuste de los datos y, que se muestre el intervalo de confianza que indiquemos. Es posible, por ejemplo, calcularlo para un 99%, en vez del 95%. 
