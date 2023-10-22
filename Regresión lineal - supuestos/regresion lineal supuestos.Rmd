@@ -1,0 +1,189 @@
+---
+title: 'Regresión lineal: supuestos'
+author: "Castro, A."
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    toc_float: yes
+    toc_depth: 3
+    collapsed: yes
+    smooth_scroll: yes
+    theme: spacelab
+    highlite: kate
+    df_printed: paged
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+---
+
+```{r setup, include=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(car) # para el test de durbin-watson 
+library(psych) # para la función pair panels
+library(lmtest) # para el test bptest
+```
+
+# Inicio
+Píldoras_R. Material de formación 
+<br>
+
+[mi_blog] https://agustincastro.es 
+<br>
+
+[mi_GitHub_R] https://github.com/acastromartinez/GITHUB---R
+<br>
+
+En esta práctica trabajaremos sobre los **SUPUESTOS** que deben cumplirse a la hora de dar por válida una regresión lineal, concretamente los de **LINEALIDAD**, **INDEPENDENCIA**, **NORMALIDAD** y **HOMOCEDASTICIDAD**. Estos supuestos proporcionan las bases para interpretar correctamente los resultados y las conclusiones del modelo. 
+
+La importancia de cumplir con estos supuestos radica en garantizar la validez de las inferencias estadísticas y las conclusiones derivadas del modelo de regresión. Además, el incumplimiento de estos supuestos puede afectar la capacidad predictiva del modelo y conducir a estimaciones sesgadas y poco fiables de los coeficientes de regresión. Es esencial realizar pruebas de diagnóstico para evaluar la violación de estos supuestos y, si es necesario, aplicar técnicas de corrección o considerar modelos alternativos.
+
+<br>
+
+Librerías que vamos a utilizar en la práctica
+```{r}
+library(car) # para el test de durbin-watson 
+library(psych) # para la función pair panels
+library(lmtest) # para el test bptest
+```
+
+# Supuestos
+
+* **Linealidad**: Este supuesto implica que la relación entre las variables independientes y la variable dependiente debe ser lineal. Si la relación es no lineal, los resultados de la regresión (lineal) pueden ser poco confiables y conducir a interpretaciones erróneas sobre la relación entre las variables.
+
+* **Normalidad**: El supuesto de normalidad establece que los **errores** de la regresión deben seguir una distribución normal. ¡Cuidado con esto!, los errores, no las variables. Cuando este supuesto se cumple, las pruebas de hipótesis y los intervalos de confianza pueden interpretarse con mayor precisión. Si la normalidad no se cumple, los intervalos de confianza y las pruebas de hipótesis pueden verse afectados, lo que puede conducir a conclusiones erróneas.
+
+* **Homocedasticidad**: Este supuesto implica que la varianza de los **errores** debe ser constante en todos los niveles de las variables predictoras. Cuando se viola este supuesto, se produce **heterocedasticidad**, lo que significa que la dispersión de los errores varía en diferentes rangos de las variables predictoras. La presencia de heterocedasticidad puede distorsionar los intervalos de confianza y los valores p-value, lo que puede afectar la precisión de las pruebas de hipótesis.
+
+* **Independencia**: El supuesto de independencia indica que los errores de la regresión no deben estar correlacionados entre sí. Si hay autocorrelación presente, puede afectar la precisión de los coeficientes y las pruebas de hipótesis, lo que lleva a conclusiones erróneas sobre la importancia de las variables predictoras. **¿Qué es la autocorrelación?** la presencia de autocorrelación en los residuos indica que **los errores del modelo muestran cierto patrón sistemático en su distribución a lo largo del tiempo**. Recordad que los errores o residuos de un modelo de regresión deberían distribuirse de manera aleatoria y seguir una distribución normal con media cero y varianza constante. 
+
+# Dataset: mtcars
+El conjunto de datos **mtcars** está integrado en R y contiene detalles, datos técnicos, y de rendimiento, sobre diferentes modelos de automóviles, recopilados por la revista "Motor Trend". Se utiliza comúnmente como ejemplo en el aprendizaje y la práctica de análisis de datos y modelado en R. Cuenta con 32 observaciones para una lista de 11 variables.
+
+```{r}
+data(mtcars)
+head(mtcars)
+str(mtcars)
+```
+
+# Relación entre las variables
+Antes de crear el modelo de regresión lineal, el que estudiaremos como variable dependiente o respuesta a **mpg** (miles per US gallon) e independiente o predictora **weigth** (wt), echaremos un vistazo a la relación existente entre ambas variables, gráficamente y, a nivel de correlación.
+
+<br> 
+Si creamos un plot de ambas variables (x = wt, y = mpg) podemos ver como hay una **relación negativa** entre ellas. Como era de esperar, un aumento del peso del vehículo dará lugar a una disminución del rendimiento en lo que se refiere al consumo de combustible. Los vehículos más pesados recorrerán menos millas por galón de combustible. 
+
+
+```{r}
+par(mfrow = c(1, 1))
+plot(mtcars$wt, mtcars$mpg,
+     main = "millas por gallon VS weigth",
+     sub = "plot",
+     xlab = "peso",
+     ylab = "millas por galón",
+     cex.lab = 1.2,
+     cex.axis = 1,
+     mgp = c(2.4, 1, 0),
+     pch = 19,
+     col = "black")
+```
+
+<br>
+Podemos cuantificar esa relación negativa midiendo su correlación lineal (-0,87, correlación fuerte). 
+
+```{r, message=FALSE, warning=FALSE} 
+df <- data.frame(mtcars$mpg, mtcars$wt)
+colnames(df) <- c("peso", "millas/galón")
+pairs.panels(df, method = "pearson",
+             main = "Correlación mpg / wt",
+             cex.labels = 1.5,
+             cex.cor = 1, stars = TRUE,
+             pch = 20,
+             gap = 0, 
+             lm = TRUE, col = "#2ECC71", 
+             hist.col = "#2ECC71")
+```
+
+<br>
+También podemos estudiar esta correlación con la función **cor**. La Ho (nula) es que no existe correlación entre las variables. El resultado sugiere que existe una fuerte correlación entre el peso del automóvil y la eficiencia del combustible en términos de millas por galón. Un valor de p tan bajo indica una alta significancia estadística, lo que respalda descartar la Ho y aceptar la alternativa, que señala la presencia de una relación entre estas dos variables. 
+```{r}
+cor.test(mtcars$wt, mtcars$mpg)
+```
+
+# Regresión lineal
+Creamos el modelo de regresión lineal con la función **lm**. 
+El modelo resultante sería igual a **mpg = -5,3445 wt + 37,2851**, con un coeficiente de determinación R^2 ajustado de **0,7446** Con este modelo, el **74,46%** de la varianza en **mpg** sería explicada por **wt**. 
+
+```{r}
+mod <- lm(mpg ~ wt, data = mtcars) # mpg ~ wt
+summary(mod)
+```
+
+# Comprobación supuestos
+## Linealidad
+Una forma de comprobar la **linealidad** es ver si la media de los residuos del modelo es igual, o cercana, a 0. En este caso, se cumple, con una media de prácticamente 0. 
+
+```{r}
+mean(mod$residuals)
+```
+
+## Normalidad
+Para comprobar la normalidad vamos a utilizar el test de **Shapiro-Wilk**, dado que el número de observaciones es inferior a 50 (idealmente, entre 30 y 50; n = 35). Con un p-value de 0.1044 (mayor que 0,05) no descartamos la Ho de normalidad. 
+
+```{r}
+shapiro.test(mod$residuals)
+```
+
+Al mismo tiempo, utilizamos un gráfico **QQ-PLOT** para valorar la normalidad visualmente. En un gráfico Q-Q, los cuantiles de la muestra se comparan con los cuantiles teóricos de la distribución de interés. Si los puntos en el gráfico se ajustan aproximadamente a una línea diagonal, indica que los datos siguen de cerca la distribución teórica (normal). Para hacer este gráfico utilizamos la fuciones **qqplot** y **qqline**.
+
+```{r}
+qqPlot(mod$residuals, 
+       distribution = "norm",
+       main = "Q-Q PLOT de residuos en mpg ~ wt",
+       xlab = "cuantiles teóricos",
+       ylab = "cuantiles de la muestra",
+       id = FALSE, grid = TRUE,
+       envelope = 0.95, col = carPalette()[1], col.lines = carPalette()[3],
+       pch = 20,
+       cex = 1,
+       lwd = 2)
+qqline(mod$residuals,
+       col = "blue",
+       lty = 1,
+       lwd = 2)   
+```
+
+## Homocedasticidad
+Para evaluar la homocedasticidad de los residuos utilizamos el test de **Breusch-Pagan**, con la función **bptest()**
+La función captura los residuos guardados en el objeto **mod** para realizar los cálculos, por lo que no es necesario indicarlo de la forma **mod$residuals**
+
+```{r}
+bptest(mod)
+```
+
+Igualmente, podemos evaluar la homocedasticidad de forma visual utilizando **plot** del objeto **mod**.
+Tenemos dos gráficos para ver esto: (gráfico 1) la distribución de los **residuos VS valores ajustados**. Lo que se busca es que estos presenten un patrón **aleatorio** alrededor de 0. Un patrón aleatorio sugiere que el modelo de regresión es apropiado y que los supuestos del modelo se cumplen. Por otro lado, el (gráfico 2), donde los residuos están estandarizados en términos de su error estándar. Un **gráfico de residuos estandarizados versus valores ajustados** es útil para identificar valores atípicos y puntos influyentes que se destacan en términos de su distancia con respecto a los valores ajustados y su variabilidad. La estandarización de los residuos los convierte en valores adimensionales, lo que facilita la comparación de la magnitud de los residuos en diferentes partes del rango de valores ajustados.
+En este caso los gráficos muestran una cierta pérdida de homocedasticidad, mientras que el test validó esta. 
+
+
+```{r}
+par(mfrow = c(1, 2))
+plot(mod, 1)
+plot(mod, 3)
+```
+
+## Independencia
+El test de **Durbin-Watson** es una prueba estadística que se utiliza para analizar la presencia de autocorrelación de primer orden en los residuos de un modelo de regresión. Aunque su uso original estaba destinado a modelos de regresión lineal simple, también puede aplicarse a modelos de regresión múltiple. **La prueba proporciona información sobre la independencia de los residuos**. El estadístico de Durbin-Watson toma valores entre **0 y 4**. Un valor de 2 sugiere que no hay autocorrelación. **Los valores más cercanos a 0 indican autocorrelación positiva**, mientras que **los valores más cercanos a 4 indican autocorrelación negativa**.
+
+El p-value es inferior a 0,05, por lo que se descarta la H0 de ausencia de autocorrelación en los residuos. El valor del estadístico de D-W es de 1,25. Habría que aceptar la H alternativa de que hay "autocorrelación" y por tanto, no hay independencia en los residuos. Este resultado hace que tengamos que ser precavidos con el modelo generado. 
+
+```{r}
+durbinWatsonTest(mod)
+```
+
+eof
+
+
+
+
+
+
